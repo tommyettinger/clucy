@@ -5,7 +5,8 @@
            (org.apache.lucene.index IndexWriter IndexWriter$MaxFieldLength Term)
            (org.apache.lucene.queryParser QueryParser)
            (org.apache.lucene.search BooleanClause BooleanClause$Occur
-                                     BooleanQuery IndexSearcher TermQuery)
+                                     BooleanQuery IndexSearcher TermQuery
+                                     Sort SortField)
            (org.apache.lucene.search.highlight Highlighter QueryScorer
                                                SimpleHTMLFormatter)
            (org.apache.lucene.store NIOFSDirectory RAMDirectory)
@@ -157,9 +158,9 @@ fragments."
                              max-fragments
                              separator))))
     (constantly nil)))
-
+(def sorter (Sort. (SortField. "time" SortField/LONG true)))
 (defn search
-  "Search the supplied index with a query string."
+  "Search the supplied index with a query string. SORTS BY FIELD :time"
   [index query max-results & {:keys [highlight default-field default-operator]}]
   (if (every? false? [default-field *content*])
     (throw (Exception. "No default search field specified"))
@@ -170,7 +171,7 @@ fragments."
                                                   :and QueryParser/AND_OPERATOR
                                                   :or  QueryParser/OR_OPERATOR)))
               query  (.parse parser query)
-              hits   (.search searcher query max-results)
+              hits   (.search searcher query nil max-results sorter)
               highlighter (make-highlighter query searcher highlight)]
           (doall
            (with-meta (for [hit (.scoreDocs hits)]
